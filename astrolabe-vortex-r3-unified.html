@@ -1,0 +1,1481 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Astrolabe Vortex R3 · Polaris-Mythos-OS-314</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Share+Tech+Mono&family=Crimson+Pro:ital,wght@0,400;1,400&display=swap" rel="stylesheet">
+<style>
+/* ═══════════════════════════════════════════════════════════════
+   VARIABLES · POLARIS COLOR SYSTEM
+═══════════════════════════════════════════════════════════════ */
+:root {
+  --bg:       #0a0e1c;
+  --bg2:      #0e1528;
+  --bg3:      #111a30;
+  --gold:     #c8a96e;
+  --gold2:    #e2c98a;
+  --cyan:     #3dd6f5;
+  --cyan2:    #7ae8ff;
+  --violet:   #7c3aed;
+  --violet2:  #a78bfa;
+  --red:      #ef4444;
+  --green:    #22c55e;
+  --text:     #a0b0d0;
+  --text2:    #6b7fa3;
+  --border:   rgba(200,169,110,0.15);
+  --border2:  rgba(61,214,245,0.1);
+  --glow-g:   rgba(200,169,110,0.08);
+  --glow-c:   rgba(61,214,245,0.08);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   RESET + BASE
+═══════════════════════════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { width: 100%; height: 100%; overflow-x: hidden; }
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 12px;
+  line-height: 1.5;
+}
+
+::-webkit-scrollbar { width: 3px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+
+/* ═══════════════════════════════════════════════════════════════
+   SCANLINE OVERLAY
+═══════════════════════════════════════════════════════════════ */
+#scanline {
+  position: fixed;
+  left: 0; right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent 0%, rgba(61,214,245,.04) 50%, transparent 100%);
+  animation: scanMove 10s linear infinite;
+  pointer-events: none;
+  z-index: 100;
+}
+@keyframes scanMove { 0%{top:-2px} 100%{top:100vh} }
+
+/* ═══════════════════════════════════════════════════════════════
+   HEADER
+═══════════════════════════════════════════════════════════════ */
+#header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 20px;
+  border-bottom: 1px solid var(--border);
+  background: linear-gradient(180deg, rgba(200,169,110,0.04) 0%, transparent 100%);
+  position: sticky; top: 0; z-index: 50;
+  backdrop-filter: blur(8px);
+}
+
+.hdr-brand {
+  display: flex;
+  flex-direction: column;
+}
+.hdr-title {
+  font-family: 'Cinzel', serif;
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--gold);
+  letter-spacing: .12em;
+  text-transform: uppercase;
+}
+.hdr-sub {
+  font-size: 9px;
+  color: var(--text2);
+  letter-spacing: .2em;
+  text-transform: uppercase;
+}
+
+.hdr-clock {
+  font-size: 10px;
+  color: var(--cyan);
+  letter-spacing: .1em;
+  text-align: center;
+}
+.hdr-phe { font-size: 9px; color: var(--text2); }
+
+.hdr-signal {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 9px;
+  letter-spacing: .1em;
+}
+#signalDot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--text2);
+  animation: pulse 2s ease-in-out infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.3} }
+#signalStatus { color: var(--text2); }
+
+/* ═══════════════════════════════════════════════════════════════
+   MAIN LAYOUT
+═══════════════════════════════════════════════════════════════ */
+#main {
+  display: grid;
+  grid-template-columns: 300px 1fr 280px;
+  gap: 0;
+  min-height: calc(100vh - 60px);
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   PANEL COMMONS
+═══════════════════════════════════════════════════════════════ */
+.psec {
+  border-bottom: 1px solid var(--border);
+  padding: 10px 12px;
+}
+.plabel {
+  font-size: 8px;
+  letter-spacing: .25em;
+  text-transform: uppercase;
+  color: var(--text2);
+  margin-bottom: 6px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.plabel::before {
+  content: '';
+  display: inline-block;
+  width: 12px; height: 1px;
+  background: var(--gold);
+  opacity: .5;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   LEFT PANEL — ASTROLABE
+═══════════════════════════════════════════════════════════════ */
+#panelLeft {
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: calc(100vh - 60px);
+}
+
+#astrolabeSVG {
+  display: block;
+  width: 260px;
+  height: 260px;
+  margin: 10px auto;
+}
+
+.planet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.planet-sym { width: 18px; text-align: center; font-size: 13px; }
+.planet-name { color: var(--text); font-size: 10px; flex:1; padding-left: 4px; }
+.planet-sign { color: var(--gold); font-size: 10px; width: 70px; }
+.planet-deg { color: var(--text2); font-size: 9px; width: 45px; text-align: right; }
+
+.aspect-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.asp-sym { width: 14px; text-align: center; font-size: 12px; }
+.asp-bodies { flex: 1; font-size: 10px; color: var(--text); }
+.asp-name { font-size: 9px; color: var(--text2); width: 70px; text-align: right; }
+.asp-orb { font-size: 9px; color: var(--text2); width: 30px; text-align: right; }
+
+/* ═══════════════════════════════════════════════════════════════
+   CENTER PANEL — JANUS TERMINAL
+═══════════════════════════════════════════════════════════════ */
+#panelCenter {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* Signal row */
+#signalRow {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  border-bottom: 1px solid var(--border);
+}
+.signal-cell {
+  padding: 8px 12px;
+  border-right: 1px solid var(--border);
+}
+.signal-cell:last-child { border-right: none; }
+.sc-label { font-size: 8px; color: var(--text2); letter-spacing: .15em; text-transform: uppercase; }
+.sc-val { font-size: 11px; color: var(--cyan); margin-top: 2px; }
+.sc-sub { font-size: 9px; color: var(--text2); }
+
+/* Terminal */
+#terminal {
+  flex: 1;
+  overflow-y: auto;
+  padding: 12px 14px;
+  min-height: 0;
+}
+
+.tline { margin: 1px 0; line-height: 1.6; word-break: break-word; }
+.ts { color: var(--text2); font-size: 10px; }
+.tl { color: var(--cyan); font-style: italic; font-family: 'Crimson Pro', serif; font-size: 13px; }
+.ta { color: var(--gold); }
+.tw { color: var(--violet2); font-size: 10px; }
+.te { color: var(--red); font-size: 10px; }
+.tk {
+  display: inline-block;
+  padding: 0 5px;
+  background: rgba(200,169,110,.1);
+  border: 1px solid rgba(200,169,110,.3);
+  border-radius: 2px;
+  color: var(--gold);
+  font-size: 10px;
+  cursor: pointer;
+}
+.tk:hover { background: rgba(200,169,110,.2); }
+.typed::after {
+  content: '▋';
+  animation: blink .7s step-end infinite;
+  color: var(--cyan);
+}
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:0} }
+
+/* Input area */
+#inputArea {
+  border-top: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  padding: 8px 12px;
+  gap: 8px;
+  background: var(--bg2);
+}
+#inputPrompt { color: var(--gold); font-size: 11px; white-space: nowrap; }
+#termIn {
+  flex: 1;
+  background: transparent;
+  border: none;
+  outline: none;
+  color: var(--cyan);
+  font-family: 'Share Tech Mono', monospace;
+  font-size: 11px;
+  caret-color: var(--cyan);
+}
+#termIn::placeholder { color: var(--text2); opacity: .5; }
+#workerStatus { font-size: 8px; color: var(--text2); white-space: nowrap; }
+
+/* ═══════════════════════════════════════════════════════════════
+   RIGHT PANEL — VORTEX + MARKET
+═══════════════════════════════════════════════════════════════ */
+#panelRight {
+  border-left: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  max-height: calc(100vh - 60px);
+}
+
+/* Vortex cycles */
+.cycle-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.cy-name { font-size: 9px; color: var(--text2); width: 80px; }
+.cy-phase { font-size: 10px; color: var(--gold); }
+.cy-bar {
+  width: 50px;
+  height: 3px;
+  background: rgba(255,255,255,.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.cy-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--cyan), var(--gold));
+  border-radius: 2px;
+  transition: width .8s ease;
+}
+
+/* Market sparklines */
+.mkt-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 5px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.mkt-name { font-size: 9px; color: var(--text2); width: 52px; flex-shrink: 0; }
+.mkt-canvas { flex: 1; height: 28px; display: block; }
+.mkt-val { font-size: 9px; width: 44px; text-align: right; flex-shrink: 0; }
+.mkt-up { color: var(--green); }
+.mkt-down { color: var(--red); }
+
+/* Omega Score */
+.omega-dim {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.omega-sym { font-size: 12px; width: 16px; text-align: center; }
+.omega-name { font-size: 9px; color: var(--text2); flex: 1; }
+.omega-bar {
+  width: 44px; height: 3px;
+  background: rgba(255,255,255,.08);
+  border-radius: 2px;
+  overflow: hidden;
+}
+.omega-fill { height: 100%; border-radius: 2px; transition: width .6s ease; }
+.omega-val { font-size: 9px; width: 20px; text-align: right; }
+
+.omega-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 8px 0 4px;
+}
+.ot-label { font-size: 9px; color: var(--text2); }
+.ot-val {
+  font-family: 'Cinzel', serif;
+  font-size: 20px;
+  color: var(--gold);
+  letter-spacing: .05em;
+}
+.ot-max { font-size: 9px; color: var(--text2); }
+
+/* WebSocket status */
+#wsStatus {
+  font-size: 8px;
+  color: var(--text2);
+  text-align: right;
+  padding-top: 3px;
+  letter-spacing: .1em;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════════════════════════ */
+#footer {
+  border-top: 1px solid var(--border);
+  padding: 8px 20px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 8px;
+  color: var(--text2);
+  letter-spacing: .1em;
+}
+#footer a { color: var(--text2); text-decoration: none; }
+#footer a:hover { color: var(--gold); }
+
+/* ═══════════════════════════════════════════════════════════════
+   RESPONSIVE
+═══════════════════════════════════════════════════════════════ */
+@media (max-width: 900px) {
+  #main { grid-template-columns: 1fr; }
+  #panelLeft, #panelRight { max-height: none; }
+  #signalRow { grid-template-columns: repeat(2, 1fr); }
+}
+</style>
+</head>
+<body>
+
+<div id="scanline"></div>
+
+<!-- HEADER -->
+<div id="header">
+  <div class="hdr-brand">
+    <div class="hdr-title">Astrolabe Vortex R3</div>
+    <div class="hdr-sub">Polaris-Mythos-OS-314 · RAJAB Rachid</div>
+  </div>
+  <div class="hdr-clock">
+    <div id="liveTime">--:--:-- UTC</div>
+    <div class="hdr-phe" id="livePHE">PHE 12026 · Jour 0</div>
+  </div>
+  <div class="hdr-signal">
+    <div id="signalDot"></div>
+    <div id="signalStatus">INIT</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+
+  <!-- LEFT PANEL -->
+  <div id="panelLeft">
+    <div class="psec">
+      <div class="plabel">Moteur Képlérien</div>
+      <div style="text-align:center">
+        <svg id="astrolabeSVG" viewBox="0 0 280 280" xmlns="http://www.w3.org/2000/svg">
+          <!-- Starfield -->
+          <g id="stars"></g>
+          <!-- Rings -->
+          <circle cx="140" cy="140" r="130" fill="none" stroke="rgba(200,169,110,0.08)" stroke-width="1"/>
+          <circle cx="140" cy="140" r="110" fill="none" stroke="rgba(61,214,245,0.06)" stroke-width=".5"/>
+          <circle cx="140" cy="140" r="90"  fill="none" stroke="rgba(200,169,110,0.05)" stroke-width=".5"/>
+          <!-- Zodiac ring (outer, rotates slowly) -->
+          <g id="zodiacRing"></g>
+          <!-- Ecliptic line -->
+          <circle cx="140" cy="140" r="90" fill="none" stroke="rgba(61,214,245,0.12)" stroke-width="1" stroke-dasharray="4 4"/>
+          <!-- Aspect lines -->
+          <g id="aspectLines"></g>
+          <!-- Planet markers -->
+          <g id="planetMarkers"></g>
+          <!-- Core -->
+          <g id="coreGroup">
+            <circle cx="140" cy="140" r="22" fill="none" stroke="rgba(200,169,110,0.2)" stroke-width="1"/>
+            <circle cx="140" cy="140" r="15" fill="none" stroke="rgba(61,214,245,0.15)" stroke-width=".5"/>
+            <circle id="coreHub" cx="140" cy="140" r="6" fill="rgba(200,169,110,0.3)" stroke="var(--gold)" stroke-width="1"/>
+            <!-- OS-314 cross -->
+            <line x1="140" y1="124" x2="140" y2="130" stroke="var(--gold)" stroke-width=".8" opacity=".6"/>
+            <line x1="140" y1="150" x2="140" y2="156" stroke="var(--gold)" stroke-width=".8" opacity=".6"/>
+            <line x1="124" y1="140" x2="130" y2="140" stroke="var(--gold)" stroke-width=".8" opacity=".6"/>
+            <line x1="150" y1="140" x2="156" y2="140" stroke="var(--gold)" stroke-width=".8" opacity=".6"/>
+          </g>
+          <!-- Date input area -->
+          <text x="140" y="276" text-anchor="middle" font-family="Share Tech Mono" font-size="7" fill="rgba(200,169,110,0.4)">Polaris-Mythos-OS-314</text>
+        </svg>
+      </div>
+    </div>
+
+    <!-- Planet positions -->
+    <div class="psec">
+      <div class="plabel">Positions Écliptiques</div>
+      <div id="planetList"></div>
+    </div>
+
+    <!-- Aspects -->
+    <div class="psec">
+      <div class="plabel">Aspects Actifs</div>
+      <div id="aspectList"></div>
+    </div>
+
+    <!-- Date control -->
+    <div class="psec">
+      <div class="plabel">Contrôle Temporel</div>
+      <div style="display:flex;gap:6px;align-items:center">
+        <input id="dateInput" type="datetime-local"
+          style="flex:1;background:var(--bg3);border:1px solid var(--border);color:var(--text);font-family:Share Tech Mono;font-size:9px;padding:4px 6px;border-radius:2px;outline:none;">
+        <button onclick="computeNow()" style="background:rgba(200,169,110,.15);border:1px solid var(--border);color:var(--gold);font-family:Share Tech Mono;font-size:9px;padding:4px 8px;cursor:pointer;border-radius:2px;">NOW</button>
+      </div>
+      <div style="margin-top:6px">
+        <button onclick="applyDate()" style="width:100%;background:rgba(61,214,245,.08);border:1px solid rgba(61,214,245,.2);color:var(--cyan);font-family:Share Tech Mono;font-size:9px;padding:5px;cursor:pointer;border-radius:2px;">▸ Calculer</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- CENTER PANEL -->
+  <div id="panelCenter">
+
+    <!-- Signal row -->
+    <div id="signalRow">
+      <div class="signal-cell">
+        <div class="sc-label">Signal</div>
+        <div class="sc-val" id="scSignal">—</div>
+        <div class="sc-sub" id="scSignalSub">—</div>
+      </div>
+      <div class="signal-cell">
+        <div class="sc-label">PHE</div>
+        <div class="sc-val" id="scPHE">—</div>
+        <div class="sc-sub" id="scPHESub">—</div>
+      </div>
+      <div class="signal-cell">
+        <div class="sc-label">Kondratiev</div>
+        <div class="sc-val" id="scKondratiev">—</div>
+        <div class="sc-sub" id="scKondratievSub">—</div>
+      </div>
+      <div class="signal-cell">
+        <div class="sc-label">Turchin</div>
+        <div class="sc-val" id="scTurchin">—</div>
+        <div class="sc-sub" id="scTurchinSub">—</div>
+      </div>
+    </div>
+
+    <!-- Terminal -->
+    <div id="terminal"></div>
+
+    <!-- Input -->
+    <div id="inputArea">
+      <span id="inputPrompt">JANUS ▸</span>
+      <input id="termIn" type="text" placeholder="interroge JANUS, commande help…" autocomplete="off" spellcheck="false">
+      <span id="workerStatus">OFFLINE</span>
+    </div>
+
+  </div>
+
+  <!-- RIGHT PANEL -->
+  <div id="panelRight">
+
+    <!-- Vortex cycles -->
+    <div class="psec">
+      <div class="plabel">Vortex Engine · Cycles</div>
+      <div id="cycleList"></div>
+    </div>
+
+    <!-- Profil astral -->
+    <div class="psec">
+      <div class="plabel">Profil Astral</div>
+      <div id="astralProfile" style="font-size:10px;line-height:1.8;color:var(--text)"></div>
+    </div>
+
+    <!-- Market sparklines -->
+    <div class="psec">
+      <div class="plabel">Market Feed</div>
+      <div id="mktRows"></div>
+      <div id="wsStatus">● MOCK · ws://localhost:8000/ws/market</div>
+    </div>
+
+    <!-- Omega Score -->
+    <div class="psec">
+      <div class="plabel">Omega Score</div>
+      <div id="omegaDims"></div>
+      <div class="omega-total">
+        <span class="ot-label">SCORE COMPOSITE</span>
+        <span><span class="ot-val" id="omegaTotal">—</span><span class="ot-max">&thinsp;/200</span></span>
+      </div>
+    </div>
+
+    <!-- Signature -->
+    <div class="psec">
+      <div class="plabel">Vortex Signature</div>
+      <div id="vortexSig" style="font-size:8px;color:var(--text2);word-break:break-all;line-height:1.8"></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div id="footer">
+  <span>© 2026 RAJAB Rachid · Polaris-Mythos-OS-314</span>
+  <span>Ce système produit des corrélations symboliques. Aucune valeur prédictive, financière ou médicale.</span>
+  <a href="mentions-legales.html">Mentions légales</a>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════════
+     JAVASCRIPT
+═══════════════════════════════════════════════════════════════ -->
+<script>
+'use strict';
+
+/* ═════════════════════════════════════════════════════════════
+   0. CONFIG
+═════════════════════════════════════════════════════════════ */
+const DEBUG = false;
+const WORKER_ENDPOINT = '/api/gnostic-dialogue';
+
+const CONFIG = {
+  workerEndpoint: WORKER_ENDPOINT,
+  storageKey: 'polaris_profile_v3',
+  vortexKey:  'polaris_vortex_v3',
+  wsEndpoint: 'ws://localhost:8000/ws/market',
+  mockMode: true,            // Set false when WebSocket live
+  tickInterval: 1500,        // ms
+};
+
+function log(...a){ if(DEBUG) console.log('[Polaris]', ...a); }
+
+/* ═════════════════════════════════════════════════════════════
+   1. POLARIS NOYAU — Moteur Képlérien J2000 (Meeus 1998)
+═════════════════════════════════════════════════════════════ */
+const PolarisNoyau = (() => {
+
+  const DEG = Math.PI / 180;
+  const RAD = 180 / Math.PI;
+
+  const BODIES = [
+    { id:'sol',     name:'Soleil',  sym:'☉', color:'#FFD700',
+      L0:280.460,  n:0.9856474,  e:0.016709, a:1.000,  i:0.0,    omega:0.0,     w:102.947 },
+    { id:'moon',    name:'Lune',    sym:'☽', color:'#C0C8D8',
+      L0:218.316,  n:13.176396,  e:0.054900, a:0.00257, i:5.145, omega:125.045, w:318.015 },
+    { id:'mercury', name:'Mercure', sym:'☿', color:'#9CA3AF',
+      L0:252.251,  n:4.092335,   e:0.205630, a:0.387,  i:7.004,  omega:48.331,  w:77.456 },
+    { id:'venus',   name:'Vénus',   sym:'♀', color:'#FCA5A5',
+      L0:181.979,  n:1.602136,   e:0.006773, a:0.723,  i:3.394,  omega:76.680,  w:131.533 },
+    { id:'mars',    name:'Mars',    sym:'♂', color:'#F97316',
+      L0:355.433,  n:0.524071,   e:0.093405, a:1.524,  i:1.849,  omega:49.558,  w:336.040 },
+    { id:'jupiter', name:'Jupiter', sym:'♃', color:'#FBBF24',
+      L0:34.351,   n:0.083056,   e:0.048498, a:5.203,  i:1.303,  omega:100.464, w:14.331 },
+    { id:'saturn',  name:'Saturne', sym:'♄', color:'#D4B896',
+      L0:50.077,   n:0.033371,   e:0.055546, a:9.537,  i:2.489,  omega:113.666, w:93.057 },
+    { id:'uranus',  name:'Uranus',  sym:'♅', color:'#6EE7B7',
+      L0:314.055,  n:0.011733,   e:0.047318, a:19.191, i:0.773,  omega:74.006,  w:173.005 },
+    { id:'neptune', name:'Neptune', sym:'♆', color:'#60A5FA',
+      L0:304.349,  n:0.005924,   e:0.008606, a:30.069, i:1.770,  omega:131.784, w:48.124 },
+  ];
+
+  const ZODIAC = [
+    { name:'Bélier',     sym:'♈', color:'#EF4444' },
+    { name:'Taureau',    sym:'♉', color:'#84CC16' },
+    { name:'Gémeaux',    sym:'♊', color:'#F59E0B' },
+    { name:'Cancer',     sym:'♋', color:'#C0C8D8' },
+    { name:'Lion',       sym:'♌', color:'#EAB308' },
+    { name:'Vierge',     sym:'♍', color:'#10B981' },
+    { name:'Balance',    sym:'♎', color:'#EC4899' },
+    { name:'Scorpion',   sym:'♏', color:'#DC2626' },
+    { name:'Sagittaire', sym:'♐', color:'#8B5CF6' },
+    { name:'Capricorne', sym:'♑', color:'#64748B' },
+    { name:'Verseau',    sym:'♒', color:'#3B82F6' },
+    { name:'Poissons',   sym:'♓', color:'#06B6D4' },
+  ];
+
+  const ASPECTS_DEF = [
+    { name:'Conjonction', angle:0,   orb:8,  color:'#FFD700', sym:'☌' },
+    { name:'Sextile',     angle:60,  orb:6,  color:'#3dd6f5', sym:'⚹' },
+    { name:'Carré',       angle:90,  orb:8,  color:'#EF4444', sym:'□' },
+    { name:'Trigone',     angle:120, orb:8,  color:'#22C55E', sym:'△' },
+    { name:'Opposition',  angle:180, orb:8,  color:'#c8a96e', sym:'☍' },
+  ];
+
+  function dateToJD(date) {
+    let y = date.getUTCFullYear();
+    let m = date.getUTCMonth() + 1;
+    const d = date.getUTCDate() + (date.getUTCHours() + date.getUTCMinutes()/60 + date.getUTCSeconds()/3600) / 24;
+    if (m <= 2) { y--; m += 12; }
+    const A = Math.floor(y / 100);
+    const B = 2 - A + Math.floor(A / 4);
+    return Math.floor(365.25 * (y + 4716)) + Math.floor(30.6001 * (m + 1)) + d + B - 1524.5;
+  }
+
+  function solveKepler(M, e) {
+    let E = M;
+    for (let i = 0; i < 50; i++) {
+      const dE = (M - E + e * Math.sin(E)) / (1 - e * Math.cos(E));
+      E += dE;
+      if (Math.abs(dE) < 1e-10) break;
+    }
+    return E;
+  }
+
+  function bodyPosition(body, jd) {
+    const D = jd - 2451545.0;
+    // Mean longitude → mean anomaly
+    const L   = ((body.L0 + body.n * D) % 360 + 360) % 360;
+    const M   = ((L - body.omega - body.w) % 360 + 360) % 360;
+    const Mrd = M * DEG;
+    const E   = solveKepler(Mrd, body.e);
+    const nu  = 2 * Math.atan2(
+      Math.sqrt(1 + body.e) * Math.sin(E / 2),
+      Math.sqrt(1 - body.e) * Math.cos(E / 2)
+    );
+    const r       = body.a * (1 - body.e * Math.cos(E));
+    const argLat  = nu + body.w * DEG;
+    const Omega   = body.omega * DEG;
+    const inc     = body.i * DEG;
+    const x = r * (Math.cos(Omega)*Math.cos(argLat) - Math.sin(Omega)*Math.sin(argLat)*Math.cos(inc));
+    const y = r * (Math.sin(Omega)*Math.cos(argLat) + Math.cos(Omega)*Math.sin(argLat)*Math.cos(inc));
+    const lon_deg = ((Math.atan2(y, x) * RAD) + 360) % 360;
+    const signIdx = Math.floor(lon_deg / 30);
+    const degInSign = (lon_deg % 30).toFixed(1);
+    return { id: body.id, name: body.name, sym: body.sym, color: body.color,
+             lon: lon_deg, signIdx, sign: ZODIAC[signIdx], degInSign };
+  }
+
+  function getAllPlanetPositions(date) {
+    const jd = dateToJD(date);
+    return BODIES.map(b => bodyPosition(b, jd));
+  }
+
+  function getRawAspects(positions) {
+    const aspects = [];
+    for (let i = 0; i < positions.length - 1; i++) {
+      for (let j = i + 1; j < positions.length; j++) {
+        const diff = Math.abs(positions[i].lon - positions[j].lon);
+        const angle = diff > 180 ? 360 - diff : diff;
+        for (const asp of ASPECTS_DEF) {
+          const orb = Math.abs(angle - asp.angle);
+          if (orb <= asp.orb) {
+            aspects.push({
+              a: positions[i], b: positions[j],
+              aspect: asp, orb: orb.toFixed(1),
+              exact: orb < 1
+            });
+          }
+        }
+      }
+    }
+    return aspects.sort((a, b) => parseFloat(a.orb) - parseFloat(b.orb));
+  }
+
+  return { dateToJD, getAllPlanetPositions, getRawAspects, ZODIAC, BODIES };
+})();
+
+
+/* ═════════════════════════════════════════════════════════════
+   2. VORTEX ENGINE — Cycles Historiques
+═════════════════════════════════════════════════════════════ */
+function getKondratiev(year) {
+  // K6 wave: 1982–2045 (63 ans)
+  const K6_START = 1982, K6_PERIOD = 63;
+  const t = ((year - K6_START) % K6_PERIOD + K6_PERIOD) % K6_PERIOD;
+  const frac = t / K6_PERIOD;
+  const phases = [
+    { name:'Printemps', start:0,    end:.25 },
+    { name:'Été',       start:.25,  end:.50 },
+    { name:'Automne',   start:.50,  end:.75 },
+    { name:'Hiver',     start:.75,  end:1.0 },
+  ];
+  const phase = phases.find(p => frac >= p.start && frac < p.end) || phases[3];
+  return { wave:'K6', phase: phase.name, progress: Math.round(frac * 100), t };
+}
+
+function getTurchin(year) {
+  // Cycle séculaire ~50 ans. Pic désintégratif ≈ 2020
+  const REF = 2020, PERIOD = 50;
+  const t = ((year - REF) % PERIOD + PERIOD) % PERIOD;
+  const frac = t / PERIOD;
+  const phase = t < 12 ? 'Désintégration' : t < 25 ? 'Transition' : t < 40 ? 'Intégration' : 'Consolidation';
+  return { cycle:'C7', phase, progress: Math.round(frac * 100), t };
+}
+
+function getStraussHowe(year) {
+  // 4e Tournant ≈ 2008, saeculum 80 ans, tournant 20 ans
+  const T4 = 2008, SAECULUM = 80, TURNING = 20;
+  const pos = ((year - T4) % SAECULUM + SAECULUM) % SAECULUM;
+  const t = Math.floor(pos / TURNING);
+  const names = ['4e · Crise', '1er · Haute', '2e · Éveil', '3e · Démêlé'];
+  return { turning: names[t % 4], progress: Math.round((pos % TURNING) / TURNING * 100) };
+}
+
+function getPHE(date) {
+  const year = date.getFullYear();
+  const phe = year + 10000;
+  const start = new Date(year, 0, 1);
+  const dayOfYear = Math.floor((date - start) / 86400000) + 1;
+  const milestones = [
+    { phe:11800, label:'Lumières' },
+    { phe:11900, label:'Ère industrielle' },
+    { phe:12000, label:'Ère numérique' },
+    { phe:12020, label:'Disruption IA' },
+    { phe:12037, label:'Horizon Polaris' },
+  ];
+  const era = [...milestones].reverse().find(m => phe >= m.phe)?.label || 'Préhistoire';
+  return { year: phe, era, dayOfYear, horizon: 12037 - phe };
+}
+
+function runVortex(date) {
+  const year = date.getFullYear();
+  return {
+    kondratiev:   getKondratiev(year),
+    turchin:      getTurchin(year),
+    straussHowe:  getStraussHowe(year),
+    phe:          getPHE(date),
+    timestamp:    date.toISOString(),
+  };
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   3. ASTRAL PROFILE — Profil Symbolique
+═════════════════════════════════════════════════════════════ */
+function getSolarSign(date) {
+  const m = date.getMonth() + 1, d = date.getDate();
+  const lookup = [
+    [1,20,'Capricorne'],[2,19,'Verseau'],[3,20,'Poissons'],[4,19,'Bélier'],
+    [5,20,'Taureau'],[6,21,'Gémeaux'],[7,22,'Cancer'],[8,22,'Lion'],
+    [9,22,'Vierge'],[10,23,'Balance'],[11,22,'Scorpion'],[12,21,'Sagittaire']
+  ];
+  for (const [sm, sd, name] of lookup) {
+    if (m === sm && d < sd) return name;
+    if (m === sm && d >= sd) {
+      const next = lookup[(lookup.indexOf(lookup.find(l=>l[0]===sm&&l[1]===sd)) + 1) % 12];
+      return next[2];
+    }
+  }
+  return 'Capricorne';
+}
+
+function getLunarSignFromDate(date) {
+  // Simplified Meeus lunar longitude
+  const jd = PolarisNoyau.dateToJD(date);
+  const T  = (jd - 2451545.0) / 36525;
+  const L0 = 218.3165 + 481267.8813 * T;
+  const M  = 357.5291 + 35999.0503 * T;
+  const MM = 134.9634 + 477198.8676 * T;
+  const D  = 297.8502 + 445267.1115 * T;
+  const F  = 93.2721 + 483202.0175 * T;
+  const DEG = Math.PI / 180;
+  const lon = L0
+    + 6.289 * Math.sin(MM * DEG)
+    - 1.274 * Math.sin((2*D - MM) * DEG)
+    + 0.658 * Math.sin(2*D * DEG)
+    - 0.186 * Math.sin(M * DEG)
+    - 0.059 * Math.sin((2*D - 2*M) * DEG)
+    - 0.057 * Math.sin((2*D - MM - M) * DEG)
+    + 0.053 * Math.sin((2*D + MM) * DEG)
+    + 0.046 * Math.sin((2*D - 2*MM) * DEG);
+  const normalized = ((lon % 360) + 360) % 360;
+  const idx = Math.floor(normalized / 30);
+  return PolarisNoyau.ZODIAC[idx].name;
+}
+
+function buildAstralProfile(date) {
+  const solar = getSolarSign(date);
+  const lunar = getLunarSignFromDate(date);
+  return { solar, lunar, date: date.toLocaleDateString('fr-FR') };
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   4. PROFIL SYSTEM — localStorage
+═════════════════════════════════════════════════════════════ */
+function saveProfile(profile) {
+  try {
+    localStorage.setItem(CONFIG.storageKey, JSON.stringify(profile));
+    log('Profil sauvegardé');
+  } catch(e) { log('localStorage save failed', e); }
+}
+
+function loadProfile() {
+  try {
+    const raw = localStorage.getItem(CONFIG.storageKey);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+
+async function buildAndSaveProfile(date) {
+  const vortexData  = runVortex(date);
+  const astralData  = buildAstralProfile(date);
+  const profile = {
+    name: 'Architecte',
+    date: date.toLocaleDateString('fr-FR'),
+    vortexData,
+    astralData,
+    metadata: { generatedAt: new Date().toISOString(), version: 'R3' }
+  };
+  saveProfile(profile);
+  return profile;
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   5. SIGNAL DISPLAY
+═════════════════════════════════════════════════════════════ */
+function updateSignalDisplay(vortex) {
+  const { kondratiev, turchin, phe } = vortex;
+
+  // Header clock
+  const now = new Date();
+  document.getElementById('liveTime').textContent =
+    now.toUTCString().slice(17, 25) + ' UTC';
+  document.getElementById('livePHE').textContent =
+    `PHE ${phe.year} · Jour ${phe.dayOfYear}`;
+
+  // Signal row
+  document.getElementById('scSignal').textContent = kondratiev.wave + ' ' + kondratiev.phase;
+  document.getElementById('scSignalSub').textContent = `+${kondratiev.progress}%`;
+
+  document.getElementById('scPHE').textContent = phe.year;
+  document.getElementById('scPHESub').textContent = phe.era;
+
+  document.getElementById('scKondratiev').textContent = kondratiev.phase;
+  document.getElementById('scKondratievSub').textContent = kondratiev.wave;
+
+  document.getElementById('scTurchin').textContent = turchin.phase;
+  document.getElementById('scTurchinSub').textContent = turchin.cycle;
+
+  // Signal dot color
+  const signalDot = document.getElementById('signalDot');
+  const signalStatus = document.getElementById('signalStatus');
+  const riskPhases = ['Hiver', 'Désintégration', 'Crise'];
+  const isRisk = riskPhases.some(p =>
+    kondratiev.phase === p || turchin.phase === p || vortex.straussHowe.turning.includes('Crise'));
+  signalDot.style.background = isRisk ? 'var(--red)' : 'var(--green)';
+  signalStatus.textContent = isRisk ? 'ALERTE CYCLIQUE' : 'CYCLES ACTIFS';
+  signalStatus.style.color = isRisk ? 'var(--red)' : 'var(--green)';
+
+  // Cycle list (right panel)
+  const cycles = [
+    { name:'Kondratiev', phase: kondratiev.wave + ' · ' + kondratiev.phase, prog: kondratiev.progress },
+    { name:'Turchin',    phase: turchin.cycle + ' · ' + turchin.phase,      prog: turchin.progress },
+    { name:'Strauss-H.', phase: vortex.straussHowe.turning,                  prog: vortex.straussHowe.progress },
+    { name:'PHE',        phase: 'An ' + phe.year,                            prog: Math.round((1 - phe.horizon/37) * 100) },
+  ];
+  document.getElementById('cycleList').innerHTML = cycles.map(c => `
+    <div class="cycle-row">
+      <span class="cy-name">${c.name}</span>
+      <span class="cy-phase">${c.phase}</span>
+      <div class="cy-bar"><div class="cy-fill" style="width:${c.prog}%"></div></div>
+    </div>
+  `).join('');
+
+  // Vortex signature
+  document.getElementById('vortexSig').textContent =
+    `K:${kondratiev.wave}-${kondratiev.progress} · T:${turchin.cycle}-${turchin.progress} · SH:${vortex.straussHowe.progress} · PHE:${phe.year} · J:${phe.dayOfYear}`;
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   6. MARKET ENGINE — Sparklines + WebSocket
+═════════════════════════════════════════════════════════════ */
+const MARKETS = [
+  { id:'cac40',   name:'CAC40',  color:'#c8a96e', val:7320, data:[] },
+  { id:'sp500',   name:'S&P500', color:'#3dd6f5', val:5280, data:[] },
+  { id:'gold',    name:'XAU/USD',color:'#a78bfa', val:2340, data:[] },
+];
+
+const OMEGA_DIMS = [
+  { sym:'Ω₁', name:'Momentum',   val:0, hl:'τ90d',  color:'#3dd6f5' },
+  { sym:'Ω₂', name:'Volatilité', val:0, hl:'τ14d',  color:'#ef4444' },
+  { sym:'Ω₃', name:'Géopolitique',val:0,hl:'τ30d',  color:'#c8a96e' },
+  { sym:'Ω₄', name:'Juridique',  val:0, hl:'τ45d',  color:'#7c3aed' },
+  { sym:'Ω₅', name:'Macro',      val:0, hl:'τ90d',  color:'#22c55e' },
+];
+
+// Seed market data with mock values
+function seedMarket(mkt) {
+  mkt.data = [];
+  let v = mkt.val;
+  for (let i = 0; i < 40; i++) {
+    v += (Math.random() - 0.49) * mkt.val * 0.004;
+    mkt.data.push(v);
+  }
+}
+
+function tickMarket(mkt) {
+  const last = mkt.data[mkt.data.length - 1];
+  const next = last + (Math.random() - 0.49) * last * 0.003;
+  mkt.data.push(next);
+  if (mkt.data.length > 60) mkt.data.shift();
+  mkt.val = next;
+}
+
+function drawSparkline(canvas, data, color) {
+  const dpr = window.devicePixelRatio || 1;
+  const W = canvas.getBoundingClientRect().width || canvas.offsetWidth || 80;
+  const H = canvas.getBoundingClientRect().height || 28;
+  canvas.width  = W * dpr;
+  canvas.height = H * dpr;
+  const ctx = canvas.getContext('2d');
+  ctx.scale(dpr, dpr);
+  ctx.clearRect(0, 0, W, H);
+  if (!data || data.length < 2) return;
+  const min = Math.min(...data), max = Math.max(...data);
+  const range = max - min || 1;
+  const pts = data.map((v, i) => ({
+    x: (i / (data.length - 1)) * (W - 4) + 2,
+    y: H - ((v - min) / range) * (H - 8) - 4
+  }));
+  // Gradient fill
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, color + '30');
+  grad.addColorStop(1, color + '00');
+  ctx.beginPath();
+  ctx.moveTo(pts[0].x, pts[0].y);
+  for (let i = 1; i < pts.length; i++) {
+    const cpx1 = pts[i-1].x + (pts[i].x - pts[i-1].x) / 3;
+    const cpx2 = pts[i].x   - (pts[i].x - pts[i-1].x) / 3;
+    ctx.bezierCurveTo(cpx1, pts[i-1].y, cpx2, pts[i].y, pts[i].x, pts[i].y);
+  }
+  ctx.strokeStyle = color;
+  ctx.lineWidth   = 1.5;
+  ctx.stroke();
+  ctx.lineTo(pts[pts.length-1].x, H);
+  ctx.lineTo(pts[0].x, H);
+  ctx.closePath();
+  ctx.fillStyle = grad;
+  ctx.fill();
+  // Terminal dot
+  const last = pts[pts.length - 1];
+  ctx.beginPath();
+  ctx.arc(last.x, last.y, 2.5, 0, Math.PI * 2);
+  ctx.fillStyle = color;
+  ctx.fill();
+}
+
+function initMarketUI() {
+  MARKETS.forEach(m => seedMarket(m));
+  const rows = document.getElementById('mktRows');
+  rows.innerHTML = MARKETS.map(m => `
+    <div class="mkt-row">
+      <span class="mkt-name">${m.name}</span>
+      <canvas id="spark_${m.id}" class="mkt-canvas"></canvas>
+      <span class="mkt-val" id="mval_${m.id}">—</span>
+    </div>
+  `).join('');
+  updateOmega();
+}
+
+function refreshMarkets() {
+  MARKETS.forEach(m => {
+    tickMarket(m);
+    const canvas = document.getElementById('spark_' + m.id);
+    if (canvas) drawSparkline(canvas, m.data, m.color);
+    const el = document.getElementById('mval_' + m.id);
+    if (el) {
+      const prev = m.data[m.data.length - 2];
+      const curr = m.data[m.data.length - 1];
+      const up = curr >= prev;
+      el.textContent = curr.toFixed(0);
+      el.className = 'mkt-val ' + (up ? 'mkt-up' : 'mkt-down');
+    }
+  });
+  updateOmega();
+}
+
+function updateOmega() {
+  // Compute Omega from market data + random sim
+  const omVals = [
+    28 + Math.round(Math.random() * 12),
+    18 + Math.round(Math.random() * 15),
+    22 + Math.round(Math.random() * 18),
+    15 + Math.round(Math.random() * 10),
+    20 + Math.round(Math.random() * 14),
+  ];
+  OMEGA_DIMS.forEach((d, i) => d.val = omVals[i]);
+  document.getElementById('omegaDims').innerHTML = OMEGA_DIMS.map(d => `
+    <div class="omega-dim">
+      <span class="omega-sym" style="color:${d.color}">${d.sym}</span>
+      <span class="omega-name">${d.name}</span>
+      <div class="omega-bar">
+        <div class="omega-fill" style="width:${d.val/40*100}%;background:${d.color}80"></div>
+      </div>
+      <span class="omega-val" style="color:${d.color}">${d.val}</span>
+    </div>
+  `).join('');
+  const total = OMEGA_DIMS.reduce((s, d) => s + d.val, 0);
+  document.getElementById('omegaTotal').textContent = total;
+}
+
+// WebSocket hook — replace mock with live feed
+let wsConn = null;
+function connectWebSocket() {
+  if (CONFIG.mockMode) return;
+  try {
+    wsConn = new WebSocket(CONFIG.wsEndpoint);
+    wsConn.onopen  = () => { document.getElementById('wsStatus').textContent = '● LIVE · ' + CONFIG.wsEndpoint; };
+    wsConn.onmessage = (e) => {
+      try {
+        const d = JSON.parse(e.data);
+        // Expected: { id: 'cac40', value: 7345.2 }
+        const mkt = MARKETS.find(m => m.id === d.id);
+        if (mkt) { mkt.data.push(d.value); if(mkt.data.length>60) mkt.data.shift(); mkt.val = d.value; }
+      } catch(err) { log('WS parse error', err); }
+    };
+    wsConn.onerror  = () => { CONFIG.mockMode = true; };
+    wsConn.onclose  = () => { CONFIG.mockMode = true; wsConn = null; };
+  } catch(e) { log('WS connect failed', e); }
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   7. SVG ASTROLABE RENDERER
+═════════════════════════════════════════════════════════════ */
+let astroAngle = 0;
+
+function buildStarfield() {
+  const g = document.getElementById('stars');
+  let html = '';
+  for (let i = 0; i < 60; i++) {
+    const x = Math.random() * 280, y = Math.random() * 280;
+    const r = Math.random() * 1.2 + 0.2;
+    const op = (Math.random() * 0.4 + 0.1).toFixed(2);
+    const dur = (Math.random() * 3 + 2).toFixed(1);
+    html += `<circle cx="${x.toFixed(1)}" cy="${y.toFixed(1)}" r="${r.toFixed(1)}"
+      fill="white" opacity="${op}">
+      <animate attributeName="opacity" values="${op};${(op*.3).toFixed(2)};${op}" dur="${dur}s" repeatCount="indefinite"/>
+    </circle>`;
+  }
+  g.innerHTML = html;
+}
+
+function buildZodiacRing() {
+  const g = document.getElementById('zodiacRing');
+  const cx = 140, cy = 140, r = 118, ri = 108;
+  const Z = PolarisNoyau.ZODIAC;
+  let html = '';
+  for (let i = 0; i < 12; i++) {
+    const a1 = (i * 30 - 90) * Math.PI / 180;
+    const a2 = ((i+1) * 30 - 90) * Math.PI / 180;
+    const x1 = cx + r * Math.cos(a1), y1 = cy + r * Math.sin(a1);
+    const x2 = cx + r * Math.cos(a2), y2 = cy + r * Math.sin(a2);
+    const xi1 = cx + ri * Math.cos(a1), yi1 = cy + ri * Math.sin(a1);
+    // Segment line
+    html += `<line x1="${xi1.toFixed(1)}" y1="${yi1.toFixed(1)}"
+      x2="${x1.toFixed(1)}" y2="${y1.toFixed(1)}"
+      stroke="${Z[i].color}" stroke-width=".5" opacity=".3"/>`;
+    // Glyph at midpoint
+    const am = ((i + .5) * 30 - 90) * Math.PI / 180;
+    const gx = cx + 124 * Math.cos(am), gy = cy + 124 * Math.sin(am);
+    html += `<text x="${gx.toFixed(1)}" y="${(gy+3).toFixed(1)}"
+      text-anchor="middle" font-size="9" fill="${Z[i].color}" opacity=".7">${Z[i].sym}</text>`;
+  }
+  // Outer ring circle
+  html += `<circle cx="140" cy="140" r="130" fill="none" stroke="rgba(200,169,110,0.15)" stroke-width=".5"/>`;
+  html += `<circle cx="140" cy="140" r="108" fill="none" stroke="rgba(200,169,110,0.1)" stroke-width=".5"/>`;
+  g.innerHTML = html;
+}
+
+function renderPlanets(positions) {
+  const cx = 140, cy = 140, r = 90;
+  const markers = document.getElementById('planetMarkers');
+  const aspects  = document.getElementById('aspectLines');
+  // Visible bodies (exclude moon for clarity, keep 7+)
+  const visible = positions.slice(0, 7);
+  // Aspect lines
+  const rawAspects = PolarisNoyau.getRawAspects(visible).slice(0, 8);
+  aspects.innerHTML = rawAspects.map(asp => {
+    const a = Math.PI * 2 * asp.a.lon / 360 - Math.PI/2;
+    const b = Math.PI * 2 * asp.b.lon / 360 - Math.PI/2;
+    const x1 = cx + r * Math.cos(a), y1 = cy + r * Math.sin(a);
+    const x2 = cx + r * Math.cos(b), y2 = cy + r * Math.sin(b);
+    const op = Math.max(.05, 1 - parseFloat(asp.orb) / 8);
+    return `<line x1="${x1.toFixed(1)}" y1="${y1.toFixed(1)}"
+      x2="${x2.toFixed(1)}" y2="${y2.toFixed(1)}"
+      stroke="${asp.aspect.color}" stroke-width=".7" opacity="${op.toFixed(2)}"
+      stroke-dasharray="3 3"/>`;
+  }).join('');
+  // Planet markers
+  markers.innerHTML = visible.map(p => {
+    const a = Math.PI * 2 * p.lon / 360 - Math.PI/2;
+    const px = cx + r * Math.cos(a), py = cy + r * Math.sin(a);
+    // Guide line from inner ring
+    const ir = 70;
+    const ix = cx + ir * Math.cos(a), iy = cy + ir * Math.sin(a);
+    return `
+      <line x1="${ix.toFixed(1)}" y1="${iy.toFixed(1)}"
+        x2="${px.toFixed(1)}" y2="${py.toFixed(1)}"
+        stroke="${p.color}" stroke-width=".4" opacity=".3"/>
+      <circle cx="${px.toFixed(1)}" cy="${py.toFixed(1)}" r="7"
+        fill="${p.color}18" stroke="${p.color}" stroke-width=".8"/>
+      <text x="${px.toFixed(1)}" y="${(py+3.5).toFixed(1)}"
+        text-anchor="middle" font-size="9" fill="${p.color}">${p.sym}</text>
+    `;
+  }).join('');
+}
+
+function pulseCore() {
+  const hub = document.getElementById('coreHub');
+  if (!hub) return;
+  const t = Date.now() / 1000;
+  const s = 0.85 + 0.15 * Math.sin(t * 2);
+  hub.setAttribute('r', (6 * s).toFixed(2));
+  hub.setAttribute('opacity', (0.5 + 0.5 * Math.sin(t * 1.5)).toFixed(2));
+}
+
+/* ═════════════════════════════════════════════════════════════
+   8. JANUS TERMINAL
+═════════════════════════════════════════════════════════════ */
+const tOut = document.getElementById('terminal');
+let activeVortex   = null;
+let currentProfile = null;
+let termHistory    = [];
+let histIdx        = -1;
+
+function tLine(text, cls='ts', delay=0) {
+  const div = document.createElement('div');
+  div.className = 'tline ' + cls;
+  div.innerHTML = text;
+  setTimeout(() => {
+    tOut.appendChild(div);
+    tOut.scrollTop = tOut.scrollHeight;
+  }, delay);
+}
+
+function checkWorkerOnline() {
+  fetch(WORKER_ENDPOINT, { method:'HEAD' })
+    .then(() => {
+      document.getElementById('workerStatus').textContent = 'ONLINE';
+      document.getElementById('workerStatus').style.color = 'var(--green)';
+    })
+    .catch(() => {
+      document.getElementById('workerStatus').textContent = 'OFFLINE';
+      document.getElementById('workerStatus').style.color = 'var(--text2)';
+    });
+}
+
+function bootTerminal(profile) {
+  tOut.innerHTML = '';
+  const v = profile?.vortexData;
+  const k = v?.kondratiev, p = v?.phe;
+  [
+    ['▸ ASTROLABE VORTEX R3 — Polaris-Mythos-OS-314', 'ta', 300],
+    [`▸ PHE ${p?.year} · ${k?.wave} ${k?.phase} · Turchin ${v?.turchin?.phase}`, 'ts', 700],
+    ['&nbsp;', '', 1000],
+    ['"Entre le symbole et la machine, il y a toi."', 'tl', 1200],
+    ['&nbsp;', '', 1600],
+    [`▸ <span class="tk" onclick="handleCmd('help')">help</span> · `
+     +`<span class="tk" onclick="handleCmd('profil')">profil</span> · `
+     +`<span class="tk" onclick="handleCmd('vortex')">vortex</span> · `
+     +`<span class="tk" onclick="handleCmd('cycles')">cycles</span>`,'ts', 1800],
+  ].forEach(([t, c, d]) => tLine(t, c, d));
+}
+
+function getOfflineResponse(msg, vortex) {
+  const v = vortex;
+  const replies = [
+    `[JANUS OFFLINE] ${v?.kondratiev?.wave} ${v?.kondratiev?.phase} — Les cycles continuent sans la machine.`,
+    `[JANUS OFFLINE] PHE ${v?.phe?.year}. Ère : ${v?.phe?.era}. Le signal persiste.`,
+    `[JANUS OFFLINE] Turchin ${v?.turchin?.cycle} · ${v?.turchin?.phase}. La tension s'accumule.`,
+    `[JANUS OFFLINE] Strauss-Howe : ${v?.straussHowe?.turning}. Observer les structures.`,
+    `[JANUS OFFLINE] "La psychohistoire ne prédit pas les individus. Elle lit les masses." — René 3.14`,
+  ];
+  return replies[Math.floor(Math.random() * replies.length)];
+}
+
+async function askVortex(userMsg) {
+  const system = `Tu es JANUS, oracle symbolique de Polaris-Mythos-OS-314, créé par Rachid RAJAB.
+Cycles actifs: ${activeVortex?.kondratiev?.wave} ${activeVortex?.kondratiev?.phase}.
+PHE: ${activeVortex?.phe?.year} (${activeVortex?.phe?.era}).
+Turchin: ${activeVortex?.turchin?.phase}.
+Réponds en français. Maximum 3 phrases. Jamais de prédictions directes.
+Disclaimer automatique: corrélations symboliques uniquement.`;
+  try {
+    const res = await fetch(WORKER_ENDPOINT, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ message: userMsg, system, profile: currentProfile }),
+      signal: AbortSignal.timeout(8000),
+    });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const data = await res.json();
+    return data.response || data.text || data.content || 'Signal reçu.';
+  } catch(e) {
+    return getOfflineResponse(userMsg, activeVortex);
+  }
+}
+
+async function handleCmd(raw) {
+  const cmd = raw.trim().toLowerCase();
+  if (!cmd) return;
+  termHistory.unshift(raw); histIdx = -1;
+  tLine('▸ ' + raw, 'ta');
+
+  // Built-in commands
+  if (cmd === 'help') {
+    tLine('Commandes disponibles:', 'ts');
+    tLine('help · profil · vortex · cycles · astral · omega · clear · pitch', 'tw');
+    return;
+  }
+  if (cmd === 'clear') { tOut.innerHTML = ''; return; }
+
+  if (cmd === 'profil') {
+    const p = currentProfile;
+    if (!p) { tLine('Aucun profil chargé.', 'te'); return; }
+    tLine(`Profil : ${p.name} · ${p.date}`, 'ts');
+    tLine(`Soleil : ${p.astralData?.solar} · Lune : ${p.astralData?.lunar}`, 'tw');
+    return;
+  }
+
+  if (cmd === 'vortex') {
+    const v = activeVortex;
+    tLine('── Vortex Engine ──', 'ts');
+    tLine(`PHE ${v?.phe?.year} · ${v?.phe?.era}`, 'tw');
+    tLine(`Kondratiev : ${v?.kondratiev?.wave} ${v?.kondratiev?.phase} (${v?.kondratiev?.progress}%)`, 'tw');
+    tLine(`Turchin    : ${v?.turchin?.cycle} ${v?.turchin?.phase}`, 'tw');
+    tLine(`Strauss-H. : ${v?.straussHowe?.turning}`, 'tw');
+    return;
+  }
+
+  if (cmd === 'cycles') {
+    tLine('── Cycles Historiques ──', 'ts');
+    tLine('K6 Kondratiev : onde ~60 ans · phases Spring/Summer/Autumn/Winter', 'ts');
+    tLine('Turchin C7    : cycle séculaire ~50 ans · intégration/désintégration', 'ts');
+    tLine('Strauss-Howe  : saeculum ~80 ans · 4 tournants générationnels', 'ts');
+    tLine('PHE           : Polaris Historical Era · 0 = 10000 BCE', 'ts');
+    return;
+  }
+
+  if (cmd === 'astral') {
+    const a = currentProfile?.astralData;
+    tLine(`Soleil : ${a?.solar} · Lune : ${a?.lunar}`, 'tw');
+    tLine('Corrélations symboliques uniquement.', 'ts');
+    return;
+  }
+
+  if (cmd === 'omega') {
+    const total = OMEGA_DIMS.reduce((s, d) => s + d.val, 0);
+    tLine(`Score Omega : ${total}/200`, 'tw');
+    OMEGA_DIMS.forEach(d => tLine(`${d.sym} ${d.name} : ${d.val}/40`, 'ts'));
+    return;
+  }
+
+  if (cmd === 'pitch') {
+    tLine('Polaris-Mythos-OS-314 — Plateforme de corrélation symbolique', 'ta');
+    tLine('Moteur képlérien · Cycles psychohistoriques · IA symbolique · Market feed', 'ts');
+    tLine('© 2026 RAJAB Rachid · INPI déposé', 'ts');
+    return;
+  }
+
+  // Default: send to JANUS AI
+  const thinking = document.createElement('div');
+  thinking.className = 'tline ts typed';
+  thinking.textContent = 'JANUS ▸ ';
+  tOut.appendChild(thinking);
+  tOut.scrollTop = tOut.scrollHeight;
+
+  const response = await askVortex(raw);
+  tOut.removeChild(thinking);
+  tLine('JANUS ▸ ' + response, 'tw');
+  tLine('⚠ Corrélations symboliques · Aucune valeur prédictive', 'ts');
+}
+
+// Terminal input handlers
+document.getElementById('termIn').addEventListener('keydown', (e) => {
+  if (e.key === 'Enter') {
+    const v = e.target.value;
+    e.target.value = '';
+    if (v.trim()) handleCmd(v);
+  }
+  if (e.key === 'ArrowUp') {
+    histIdx = Math.min(histIdx + 1, termHistory.length - 1);
+    if (termHistory[histIdx]) e.target.value = termHistory[histIdx];
+  }
+  if (e.key === 'ArrowDown') {
+    histIdx = Math.max(histIdx - 1, -1);
+    e.target.value = histIdx >= 0 ? termHistory[histIdx] : '';
+  }
+});
+
+// Click on keyword pills
+document.querySelectorAll('.tk').forEach(el =>
+  el.addEventListener('click', () => handleCmd(el.textContent))
+);
+
+
+/* ═════════════════════════════════════════════════════════════
+   9. PLANET LIST + ASPECTS LIST
+═════════════════════════════════════════════════════════════ */
+function renderPlanetList(positions) {
+  document.getElementById('planetList').innerHTML = positions.slice(0,9).map(p => `
+    <div class="planet-row">
+      <span class="planet-sym" style="color:${p.color}">${p.sym}</span>
+      <span class="planet-name">${p.name}</span>
+      <span class="planet-sign" style="color:${p.sign.color}">${p.sign.sym} ${p.sign.name}</span>
+      <span class="planet-deg">${p.degInSign}°</span>
+    </div>
+  `).join('');
+}
+
+function renderAspectList(aspects) {
+  const top = aspects.slice(0, 6);
+  document.getElementById('aspectList').innerHTML = top.length
+    ? top.map(a => `
+        <div class="aspect-row">
+          <span class="asp-sym" style="color:${a.aspect.color}">${a.aspect.sym}</span>
+          <span class="asp-bodies" style="color:${a.a.color}">${a.a.sym}</span>
+          <span class="asp-bodies" style="color:${a.b.color}">${a.b.sym}</span>
+          <span class="asp-name" style="color:${a.aspect.color}">${a.aspect.name}</span>
+          <span class="asp-orb">${a.orb}°</span>
+        </div>
+      `).join('')
+    : '<div style="color:var(--text2);font-size:9px;padding:4px 0">Aucun aspect majeur</div>';
+}
+
+function renderAstralProfile(astral) {
+  document.getElementById('astralProfile').innerHTML =
+    `Soleil ☉ : <span style="color:var(--gold)">${astral?.solar || '—'}</span><br>
+     Lune  ☽ : <span style="color:var(--cyan)">${astral?.lunar || '—'}</span>`;
+}
+
+
+/* ═════════════════════════════════════════════════════════════
+   10. INIT SYSTEM — Pipeline strict
+═════════════════════════════════════════════════════════════ */
+let currentDate = new Date();
+let animRaf;
+
+function computeNow() {
+  currentDate = new Date();
+  const iso = currentDate.toISOString().slice(0,16);
+  document.getElementById('dateInput').value = iso;
+  refresh();
+}
+
+function applyDate() {
+  const v = document.getElementById('dateInput').value;
+  if (v) currentDate = new Date(v);
+  refresh();
+}
+
+function refresh() {
+  const positions = PolarisNoyau.getAllPlanetPositions(currentDate);
+  const aspects   = PolarisNoyau.getRawAspects(positions);
+  // 1. runVortex
+  activeVortex = runVortex(currentDate);
+  // 2. buildAstralProfile
+  const astral = buildAstralProfile(currentDate);
+  // 3. buildAndSaveProfile (async, non-blocking)
+  buildAndSaveProfile(currentDate).then(p => { currentProfile = p; renderAstralProfile(astral); });
+  // 4. updateSignalDisplay
+  updateSignalDisplay(activeVortex);
+  // 5. Render
+  renderPlanets(positions);
+  renderPlanetList(positions);
+  renderAspectList(aspects);
+  renderAstralProfile(astral);
+  log('Refresh — PHE', activeVortex.phe.year, '· Kondratiev', activeVortex.kondratiev.phase);
+}
+
+async function initSystem() {
+  log('initSystem start');
+  // Build SVG starfield + zodiac
+  buildStarfield();
+  buildZodiacRing();
+  // Init market UI
+  initMarketUI();
+  // Set date input to now
+  computeNow();
+  // Load or build profile
+  let profile = loadProfile();
+  const today = new Date().toLocaleDateString('fr-FR');
+  if (!profile || profile.date !== today) {
+    profile = await buildAndSaveProfile(new Date());
+  }
+  currentProfile = profile;
+  // 1. runVortex
+  activeVortex = runVortex(new Date());
+  // 2. astral
+  const astral = buildAstralProfile(new Date());
+  // 3. signal display
+  updateSignalDisplay(activeVortex);
+  // 4. boot terminal
+  bootTerminal(profile);
+  renderAstralProfile(astral);
+  // Check worker
+  checkWorkerOnline();
+  // Connect WS (no-op if mock mode)
+  connectWebSocket();
+  // Market tick loop
+  setInterval(refreshMarkets, CONFIG.tickInterval);
+  // SVG animation loop
+  function animate() {
+    astroAngle += 0.001;
+    const ring = document.getElementById('zodiacRing');
+    if (ring) ring.setAttribute('transform', `rotate(${astroAngle * 0.3}, 140, 140)`);
+    pulseCore();
+    // Live clock update (every second handled by setInterval below)
+    animRaf = requestAnimationFrame(animate);
+  }
+  animate();
+  // Live clock
+  setInterval(() => {
+    const now = new Date();
+    document.getElementById('liveTime').textContent =
+      now.toUTCString().slice(17, 25) + ' UTC';
+    document.getElementById('livePHE').textContent =
+      `PHE ${activeVortex?.phe?.year || '—'} · Jour ${activeVortex?.phe?.dayOfYear || '—'}`;
+  }, 1000);
+
+  log('initSystem complete');
+}
+
+// Boot
+window.addEventListener('DOMContentLoaded', initSystem);
+</script>
+</body>
+</html>
